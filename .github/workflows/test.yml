@@ -1,12 +1,12 @@
 name: CI - Test free-disk-space action
 
 on:
-  push:
-     branches: [ main, develop, release_v2 ]
+  # push:
+  #   branches: [ main, develop ]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [ main, develop, release_v2 ]
-  workflow_dispatch:
+    branches: [ main, develop ]
+  # workflow_dispatch:
 
 jobs:
   test-action:
