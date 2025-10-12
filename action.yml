@@ -58,11 +58,21 @@ runs:
         # MACROS
         # ======
 
+        setup_rmz() {
+          curl -fsSL --tlsv1.2 --proto '=https' https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash > /dev/null 2>&1
+          cargo binstall -qy rmz
+          ln -s ~/.cargo/bin/rmz /usr/local/bin/rmz
+        }
+
         fast_rmdir() {
           if [[ -d "$1" ]] && [[ -n "$1" ]] && [[ ! "$1" = "/" ]] && [[ ! "$1" = "~" ]]; then
             echo "Removing directory: $1"
-            sudo find "$1" -type f -delete -print | wc -l
-            sudo rm -rf "$1"
+            # remove with rmz
+            sudo rmz -f "$1" || true
+            # Remove with find
+            #sudo find "$1" -type f -delete -print | wc -l
+            #sudo rm -rf "$1"
+            # Remove with rsync
             # https://runcloud.io/blog/delete-directory-linux --> tldr; rsync of an empty directory is often the fastest way to bulk delete files
             # Experimentation disproved this assertion that rsync is faster.  Intial tests :  find=268seconds, with rsync=383seconds
             #sudo mkdir -p /tmp/empty
@@ -154,6 +164,7 @@ runs:
         GLOBAL_START_TIME=$(date +%s)
         AVAILABLE_INITIAL=$(getAvailableSpace)
         AVAILABLE_ROOT_INITIAL=$(getAvailableSpace '/')
+        setup_rmz
 
         printDF "BEFORE CLEAN-UP:"
         echo ""
