@@ -84,11 +84,14 @@ runs:
           title=${2}
           time=${3}
 
-          echo ""
           printSeparationLine '*' 80
           epsilon=0.001 # avoid divide by zero failures
-          RATE=$(awk "BEGIN {printf \"%.2f\", ( $saved / 1000.0 ) /($time + $epsilon)}")
-          echo "=> ${title}: Saved $(formatByteCount $saved): in ${time} seconds : rate = ${RATE} GB/sec"
+          # $saved in in bytes, so convert to GB with  division by 1000000.0
+          RATE=$(awk "BEGIN {printf \"%.2f\", ( $saved / 1000000.0 ) /($time + $epsilon)}")
+          gigabytes_saved=$(formatByteCount $saved)
+          gigabytes_saved=$(formatByteCount $saved)
+          echo ":$gigabytes_saved:$saved:$time:$title:"
+          echo "=> ${title}: Saved $gigabytes_saved: in ${time} seconds : rate = ${RATE} GB/sec"
           printSeparationLine '*' 80
           echo ""
         }
