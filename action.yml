@@ -185,10 +185,10 @@ runs:
           BEFORE=$(getAvailableSpace)
 
           sudo rm -f /var/lib/man-db/auto-update
-          sudo dpkg-divert --local --rename --add /usr/bin/mandb && sudo ln -s /bin/true /usr/bin/mandb
           sudo apt-get purge -y man-db manpages manpages-dev
           sudo apt-get autoremove -y
-          sudo dpkg-divert --rename --remove /usr/bin/mandb
+          # Clean caches
+          sudo rm -rf /var/lib/apt/lists/* /var/cache/apt/* || true
 
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
