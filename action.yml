@@ -76,7 +76,15 @@ runs:
 
         # macro to make Kb human readable (assume the input is Kb)
         # REF: https://unix.stackexchange.com/a/44087/60849
-        formatByteCount() { echo $(numfmt --to=iec-i --suffix=B --padding=7 $1'000'); }
+        formatByteCount() {
+          bytes=$1
+          if [ "$bytes" -lt "0" ]; then
+            kilobytes=$(echo "-$1 * 1000" |bc -l )
+          else
+            kilobytes=$(echo " $1 * 1000" |bc -l )
+          fi
+           echo $(numfmt --to=iec-i --suffix=B --padding=7 ${kilobytes});
+        }
 
         # macro to output saved space
         printSavedSpace() {
