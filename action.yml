@@ -53,7 +53,8 @@ runs:
   steps:
     - shell: bash
       run: |
-
+        declare -A times_mapping
+        declare -A saved_mapping
         # ======
         # MACROS
         # ======
@@ -194,6 +195,8 @@ runs:
           SAVED=$((AFTER-BEFORE))
           STAGE_STOP_TIME=$(date +%s)
           STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          times_mapping["mandb"]="${STAGE_ELAPSE_TIME}"
+          saved_mapping["mandb"]="$(formatByteCount $SAVED)"
           printSavedSpace $SAVED "man page indexing intial removals and disabling" ${STAGE_ELAPSE_TIME}
         fi
 
@@ -210,6 +213,8 @@ runs:
           SAVED=$((AFTER-BEFORE))
           STAGE_STOP_TIME=$(date +%s)
           STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          times_mapping["android"]="${STAGE_ELAPSE_TIME}"
+          saved_mapping["android"]="$(formatByteCount $SAVED)"
           printSavedSpace $SAVED "Android library" ${STAGE_ELAPSE_TIME}
         fi
 
@@ -226,6 +231,8 @@ runs:
           SAVED=$((AFTER-BEFORE))
           STAGE_STOP_TIME=$(date +%s)
           STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          times_mapping["dotnet"]="${STAGE_ELAPSE_TIME}"
+          saved_mapping["dotnet"]="$(formatByteCount $SAVED)"
           printSavedSpace $SAVED ".NET runtime" ${STAGE_ELAPSE_TIME}
         fi
 
@@ -242,6 +249,8 @@ runs:
           SAVED=$((AFTER-BEFORE))
           STAGE_STOP_TIME=$(date +%s)
           STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          times_mapping["haskell"]="${STAGE_ELAPSE_TIME}"
+          saved_mapping["haskell"]="$(formatByteCount $SAVED)"
           printSavedSpace $SAVED "Haskell runtime" ${STAGE_ELAPSE_TIME}
         fi
 
@@ -268,6 +277,8 @@ runs:
           SAVED=$((AFTER-BEFORE))
           STAGE_STOP_TIME=$(date +%s)
           STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          times_mapping["large-packages"]="${STAGE_ELAPSE_TIME}"
+          saved_mapping["large-packages"]="$(formatByteCount $SAVED)"
           printSavedSpace $SAVED "Large misc. packages" ${STAGE_ELAPSE_TIME}
         fi
 
@@ -283,6 +294,8 @@ runs:
           SAVED=$((AFTER-BEFORE))
           STAGE_STOP_TIME=$(date +%s)
           STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          times_mapping["docker-images"]="${STAGE_ELAPSE_TIME}"
+          saved_mapping["docker-images"]="$(formatByteCount $SAVED)"
           printSavedSpace $SAVED "Docker images" ${STAGE_ELAPSE_TIME}
         fi
 
@@ -299,6 +312,8 @@ runs:
           SAVED=$((AFTER-BEFORE))
           STAGE_STOP_TIME=$(date +%s)
           STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          times_mapping["tool-cache"]="${STAGE_ELAPSE_TIME}"
+          saved_mapping["tool-cache"]="$(formatByteCount $SAVED)"
           printSavedSpace $SAVED "Tool cache" ${STAGE_ELAPSE_TIME}
         fi
 
@@ -316,6 +331,8 @@ runs:
           SAVED=$((AFTER-BEFORE))
           STAGE_STOP_TIME=$(date +%s)
           STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          times_mapping["swap-storage"]="${STAGE_ELAPSE_TIME}"
+          saved_mapping["swap-storage"]="$(formatByteCount $SAVED)"
           printSavedSpace $SAVED "Swap storage" ${STAGE_ELAPSE_TIME}
         fi
 
@@ -334,4 +351,16 @@ runs:
         echo ""
 
         printSavedSpace $((AVAILABLE_ROOT_END - AVAILABLE_ROOT_INITIAL)) "/dev/root:" $((GLOBAL_STOP_TIME - GLOBAL_START_TIME))
+        times_mapping["root"]="$((GLOBAL_STOP_TIME - GLOBAL_START_TIME))"
+        saved_mapping["root"]="$(formatByteCount $((AVAILABLE_ROOT_END - AVAILABLE_ROOT_INITIAL)) )"
         printSavedSpace $((AVAILABLE_END - AVAILABLE_INITIAL)) "Overall:" $((GLOBAL_STOP_TIME - GLOBAL_START_TIME))
+        times_mapping["overall"]="$((GLOBAL_STOP_TIME - GLOBAL_START_TIME))"
+        saved_mapping["overall"]="$(formatByteCount $((AVAILABLE_END - AVAILABLE_INITIAL)) )"
+
+        # Iterate over keys
+        echo "TIME_REPORT: ================================================================================"
+        printf "TIME_REPORT: %15s | %-10s seconds |\n" "subsection" "time"
+        for subsection in "${!times_mapping[@]}"; do
+           printf "TIME_REPORT: %15s | %-10s seconds | %-12s |\n" "${subsection}" "${times_mapping[$subsection]}" "${saved_mapping[$subsection]}"
+        done
+        echo "TIME_REPORT: ================================================================================"
