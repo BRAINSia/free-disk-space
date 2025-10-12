@@ -81,15 +81,12 @@ runs:
         # macro to output saved space
         printSavedSpace() {
           saved=${1}
-          title=${2:-}
+          title=${2}
+          time=${3}
 
           echo ""
           printSeparationLine '*' 80
-          if [ ! -z "${title}" ]; then
-            echo "=> ${title}: Saved $(formatByteCount $saved)"
-          else
-            echo "=> Saved $(formatByteCount $saved)"
-          fi
+          echo "=> ${title}: Saved $(formatByteCount $saved): in ${time} seconds"
           printSeparationLine '*' 80
           echo ""
         }
@@ -120,7 +117,7 @@ runs:
         # ======
 
         # Display initial disk space stats
-
+        GLOBAL_START_TIME=$(date +%s)
         AVAILABLE_INITIAL=$(getAvailableSpace)
         AVAILABLE_ROOT_INITIAL=$(getAvailableSpace '/')
 
@@ -131,18 +128,22 @@ runs:
         # Option: Remove Android library
 
         if [[ ${{ inputs.android }} == 'true' ]]; then
+          STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
           
           sudo rm -rf /usr/local/lib/android || true
 
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
-          printSavedSpace $SAVED "Android library"
+          STAGE_STOP_TIME=$(date +%s)
+          STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          printSavedSpace $SAVED "Android library" ${STAGE_ELAPSE_TIME}
         fi
 
         # Option: Remove .NET runtime
 
         if [[ ${{ inputs.dotnet }} == 'true' ]]; then
+          STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
           # https://github.community/t/bigger-github-hosted-runners-disk-space/17267/11
@@ -150,12 +151,15 @@ runs:
           
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
-          printSavedSpace $SAVED ".NET runtime"
+          STAGE_STOP_TIME=$(date +%s)
+          STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          printSavedSpace $SAVED ".NET runtime" ${STAGE_ELAPSE_TIME}
         fi
 
         # Option: Remove Haskell runtime
 
         if [[ ${{ inputs.haskell }} == 'true' ]]; then
+          STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
           sudo rm -rf /opt/ghc || true
@@ -163,13 +167,16 @@ runs:
           
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
-          printSavedSpace $SAVED "Haskell runtime"
+          STAGE_STOP_TIME=$(date +%s)
+          STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          printSavedSpace $SAVED "Haskell runtime" ${STAGE_ELAPSE_TIME}
         fi
 
         # Option: Remove large packages
         # REF: https://github.com/apache/flink/blob/master/tools/azure-pipelines/free_disk_space.sh
 
         if [[ ${{ inputs.large-packages }} == 'true' ]]; then
+          STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
           
           sudo apt-get remove -y '^aspnetcore-.*' || echo "::warning::The command [sudo apt-get remove -y '^aspnetcore-.*'] failed to complete successfully. Proceeding..."
@@ -186,37 +193,46 @@ runs:
 
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
-          printSavedSpace $SAVED "Large misc. packages"
+          STAGE_STOP_TIME=$(date +%s)
+          STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          printSavedSpace $SAVED "Large misc. packages" ${STAGE_ELAPSE_TIME}
         fi
 
         # Option: Remove Docker images
 
         if [[ ${{ inputs.docker-images }} == 'true' ]]; then
+          STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
           sudo docker image prune --all --force || true
 
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
-          printSavedSpace $SAVED "Docker images"
+          STAGE_STOP_TIME=$(date +%s)
+          STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          printSavedSpace $SAVED "Docker images" ${STAGE_ELAPSE_TIME}
         fi
 
         # Option: Remove tool cache
         # REF: https://github.com/actions/virtual-environments/issues/2875#issuecomment-1163392159
 
         if [[ ${{ inputs.tool-cache }} == 'true' ]]; then
+          STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
           sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
           
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
-          printSavedSpace $SAVED "Tool cache"
+          STAGE_STOP_TIME=$(date +%s)
+          STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          printSavedSpace $SAVED "Tool cache" ${STAGE_ELAPSE_TIME}
         fi
 
         # Option: Remove Swap storage
 
         if [[ ${{ inputs.swap-storage }} == 'true' ]]; then
+          STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
           sudo swapoff -a || true
@@ -225,7 +241,9 @@ runs:
           
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
-          printSavedSpace $SAVED "Swap storage"
+          STAGE_STOP_TIME=$(date +%s)
+          STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          printSavedSpace $SAVED "Swap storage" ${STAGE_ELAPSE_TIME}
         fi
 
 
@@ -234,6 +252,7 @@ runs:
 
         AVAILABLE_END=$(getAvailableSpace)
         AVAILABLE_ROOT_END=$(getAvailableSpace '/')
+        GLOBAL_STOP_TIME=$(date +%s)
 
         echo ""
         printDF "AFTER CLEAN-UP:"
@@ -241,7 +260,5 @@ runs:
         echo ""
         echo ""
 
-        echo "/dev/root:"
-        printSavedSpace $((AVAILABLE_ROOT_END - AVAILABLE_ROOT_INITIAL))
-        echo "overall:"
-        printSavedSpace $((AVAILABLE_END - AVAILABLE_INITIAL))
+        printSavedSpace $((AVAILABLE_ROOT_END - AVAILABLE_ROOT_INITIAL)) "/dev/root:" $((GLOBAL_STOP_TIME - GLOBAL_START_TIME))
+        printSavedSpace $((AVAILABLE_END - AVAILABLE_INITIAL)) "Overall:" $((GLOBAL_STOP_TIME - GLOBAL_START_TIME))
