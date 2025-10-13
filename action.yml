@@ -7,6 +7,12 @@ branding:
   color: "green"
 
 inputs:
+  removalmode:
+    # See analysis in https://github.com/SUPERCILEX/fuc/tree/master/comparisons
+    description: "File removal mode [rmz, find, rsync, rm]"
+    required: false
+    default: "rmz"
+
   mandb:
     description: "Remove mandb and disable apt triggers"
     required: false
@@ -66,19 +72,37 @@ runs:
         }
 
         fast_rmdir() {
+          # See analysis in https://github.com/SUPERCILEX/fuc/tree/master/comparisons
+          #
           if [[ -d "$1" ]] && [[ -n "$1" ]] && [[ ! "$1" = "/" ]] && [[ ! "$1" = "~" ]]; then
             echo "Removing directory: $1"
-            # remove with rmz
-            sudo rmz -f "$1" || true
-            # Remove with find
-            #sudo find "$1" -type f -delete -print | wc -l
-            #sudo rm -rf "$1"
-            # Remove with rsync
-            # https://runcloud.io/blog/delete-directory-linux --> tldr; rsync of an empty directory is often the fastest way to bulk delete files
-            # Experimentation disproved this assertion that rsync is faster.  Intial tests :  find=268seconds, with rsync=383seconds
-            #sudo mkdir -p /tmp/empty
-            #sudo rsync -a --delete /tmp/empty/ "$1"/
-            #sudo rm -rf /tmp/empty "$1"
+            case "${{ inputs.removalmode }}" in
+              "rmz")
+                # Remove with rmz (requires separate download step)
+                sudo rmz -f "$1" || true
+                ;;
+              "find")
+                # Remove with find (available by default)
+                sudo find "$1" -type f -delete -print | wc -l
+                sudo rm -rf "$1"
+                ;;
+              "rsync")
+                # Remove with rsync (availble by default)
+                # https://runcloud.io/blog/delete-directory-linux --> tldr; rsync of an empty directory is often the fastest way to bulk delete files
+                # Experimentation disproved this assertion that rsync is faster.
+                sudo mkdir -p /tmp/empty
+                sudo rsync -a --delete /tmp/empty/ "$1"/
+                sudo rm -rf /tmp/empty "$1"
+                ;;
+              "rm")
+                # Remove with standard unix command
+                sudo rm -rf "$1"
+                ;;
+              "*")
+                echo "ERROR: Invalid removalmode specified.  Valid values are [rmz, find, rsync, rm]"
+                exit -1
+                ;;
+            esac
           fi
         }
 
@@ -165,7 +189,10 @@ runs:
         GLOBAL_START_TIME=$(date +%s)
         AVAILABLE_INITIAL=$(getAvailableSpace)
         AVAILABLE_ROOT_INITIAL=$(getAvailableSpace '/')
-        setup_rmz
+
+        if [[ ${{ inputs.removalmode }} == 'rmz' ]]; then
+          setup_rmz
+        fi
 
         printDF "BEFORE CLEAN-UP:"
         echo ""
@@ -358,9 +385,10 @@ runs:
         saved_mapping["overall"]="$(formatByteCount $((AVAILABLE_END - AVAILABLE_INITIAL)) )"
 
         # Iterate over keys
-        echo "TIME_REPORT: ================================================================================"
-        printf "TIME_REPORT: %15s | %-10s seconds |\n" "subsection" "time"
+        echo "TIME_REPORT: == ${{ inputs.removalmode }} ===================================================="
+        printf "TIME_REPORT: %15s | %-10s seconds | %-12s |\n" "subsection" "time" "size"
+        echo "TIME_REPORT: ============================================================="
         for subsection in "${!times_mapping[@]}"; do
            printf "TIME_REPORT: %15s | %-10s seconds | %-12s |\n" "${subsection}" "${times_mapping[$subsection]}" "${saved_mapping[$subsection]}"
         done
-        echo "TIME_REPORT: ================================================================================"
+        echo "TIME_REPORT: == ${{ inputs.removalmode }} ===================================================="
