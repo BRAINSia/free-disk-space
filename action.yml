@@ -135,11 +135,11 @@ runs:
         formatByteCount() {
           bytes=$1
           if [ "$bytes" -lt "0" ]; then
-            kilobytes=$(echo "-$1 * 1000" |bc -l )
+            kilobytes=$(awk "BEGIN {printf \"%.2f\", -$1 * 1000}")
           else
-            kilobytes=$(echo " $1 * 1000" |bc -l )
+            kilobytes=$(awk "BEGIN {printf \"%.2f\",  $1 * 1000}")
           fi
-           echo $(numfmt --to=iec-i --suffix=B --padding=7 ${kilobytes});
+          echo $(numfmt --to=iec-i --suffix=B --padding=7 ${kilobytes});
         }
 
         # macro to output saved space
@@ -154,7 +154,6 @@ runs:
           RATE=$(awk "BEGIN {printf \"%.2f\", ( $saved / 1000000.0 ) /($time + $epsilon)}")
           gigabytes_saved=$(formatByteCount $saved)
           gigabytes_saved=$(formatByteCount $saved)
-          echo ":$gigabytes_saved:$saved:$time:$title:"
           echo "=> ${title}: Saved $gigabytes_saved: in ${time} seconds : rate = ${RATE} GB/sec"
           printSeparationLine '*' 80
           echo ""
