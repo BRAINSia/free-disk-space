@@ -13,6 +13,12 @@ inputs:
     required: false
     default: "rmz"
 
+  aptquietflags:
+    # avoid excessive logging during CI
+    description: "default to make apt-less noisy"
+    required:    false
+    default:     " -qq -o=Dpkg::Use-Pty=0 "
+
   mandb:
     description: "Remove mandb and disable apt triggers"
     required: false
@@ -212,8 +218,8 @@ runs:
           BEFORE=$(getAvailableSpace)
 
           sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get purge -y man-db manpages manpages-dev
-          sudo apt-get autoremove -y
+          sudo apt-get purge ${{ inputs.aptquietflags }} -y man-db manpages manpages-dev
+          sudo apt-get autoremove ${{ inputs.aptquietflags }} -y
           # Clean caches
           sudo rm -rf /var/lib/apt/lists/* /var/cache/apt/* || true
 
@@ -296,8 +302,8 @@ runs:
             fast_rmdir  /usr/share/man || true
           fi
 
-          sudo apt-get remove --autoremove -y $pkgs || echo "::warning::The command [sudo apt-get remove -y] failed to complete successfully. Proceeding..."
-          sudo apt-get clean || echo "::warning::The command [sudo apt-get clean] failed to complete successfully. Proceeding..."
+          sudo apt-get remove ${{ inputs.aptquietflags }} --autoremove -y $pkgs || echo "::warning::The command [sudo apt-get remove -y] failed to complete successfully. Proceeding..."
+          sudo apt-get clean ${{ inputs.aptquietflags }} || echo "::warning::The command [sudo apt-get clean] failed to complete successfully. Proceeding..."
 
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
