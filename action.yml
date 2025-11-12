@@ -141,11 +141,13 @@ runs:
         formatByteCount() {
           bytes=$1
           if [ "$bytes" -lt "0" ]; then
-            kilobytes=$(awk "BEGIN {printf \"%.2f\", -$1 * 1000}")
+            kilobytes=$(awk "BEGIN {printf \"%.2f\",  $1 * -1000}")
+            sign_symbol="-"
           else
             kilobytes=$(awk "BEGIN {printf \"%.2f\",  $1 * 1000}")
+            sign_symbol="+"
           fi
-          echo $(numfmt --to=iec-i --suffix=B --padding=7 ${kilobytes});
+          echo ${sign_symbol}$(numfmt --to=iec-i --suffix=B --padding=7 ${kilobytes});
         }
 
         # macro to output saved space
