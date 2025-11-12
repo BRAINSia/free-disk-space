@@ -215,6 +215,10 @@ runs:
         #        locale updates via language-pack-* or localepurge
         # Preventing these triggers can save 30–90 seconds per large apt-get block in Ubuntu CI environments.
 
+        # prevent initramfs-tools from updating RAM filesystem
+        # updating the initial RAM filesystem image needed for reboot
+        # is not necessary for these transient images
+        export INITRD=No
         if [[ ${{ inputs.mandb }} == 'true' ]]; then
           STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
