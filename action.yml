@@ -235,7 +235,7 @@ runs:
           STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
           times_mapping["mandb"]="${STAGE_ELAPSE_TIME}"
           saved_mapping["mandb"]="$(formatByteCount $SAVED)"
-          printSavedSpace $SAVED "man page indexing intial removals and disabling" ${STAGE_ELAPSE_TIME}
+          printSavedSpace $SAVED "man page indexing initial removals and disabling" ${STAGE_ELAPSE_TIME}
         fi
 
 
