@@ -93,7 +93,7 @@ runs:
                 sudo rm -rf "$1"
                 ;;
               "rsync")
-                # Remove with rsync (availble by default)
+                # Remove with rsync (available by default)
                 # https://runcloud.io/blog/delete-directory-linux --> tldr; rsync of an empty directory is often the fastest way to bulk delete files
                 # Experimentation disproved this assertion that rsync is faster.
                 sudo mkdir -p /tmp/empty
@@ -101,7 +101,7 @@ runs:
                 sudo rm -rf /tmp/empty "$1"
                 ;;
               "rm")
-                # Remove with standard unix command
+                # Remove with a standard Unix command
                 sudo rm -rf "$1"
                 ;;
               "*")
@@ -158,7 +158,7 @@ runs:
 
           printSeparationLine '*' 80
           epsilon=0.001 # avoid divide by zero failures
-          # $saved in in bytes, so convert to GB with  division by 1000000.0
+          # $saved in bytes, so convert to GB with  division by 1000000.0
           RATE=$(awk "BEGIN {printf \"%.2f\", ( $saved / 1000000.0 ) /($time + $epsilon)}")
           gigabytes_saved=$(formatByteCount $saved)
           gigabytes_saved=$(formatByteCount $saved)
@@ -206,7 +206,7 @@ runs:
 
         # Option: Remove man-page updates
         #
-        # Disabling manpage generation and localization post-processing, can dramatically
+        # Disabling manpage generation and localization post-processing can dramatically
         # speed up apt operations (install/remove) on GitHub Actions or CI hosts.
         # Why it’s slow:
         # During apt install or apt remove, Ubuntu/Debian automatically runs dpkg triggers such as:
