@@ -1,4 +1,7 @@
-name: "Free Disk Space (Ubuntu)"
+name: "Free Disk Space (CI Action)"
+# This is a replacement for the inactive (https://github.com/jlumbroso/free-disk-space) original work.
+# After several attempts and 2 years of inactivity, this forked project is an attempt to keep the
+# useful tool supported by the community."
 description: "A configurable GitHub Action to free up disk space on an Ubuntu GitHub Actions runner."
 
 # See: https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#branding
