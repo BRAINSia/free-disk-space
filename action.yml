@@ -3,6 +3,7 @@ name: "Free Disk Space (CI Action)"
 # After several attempts and 2 years of inactivity, this forked project is an attempt to keep the
 # useful tool supported by the community."
 description: "A configurable GitHub Action to free up disk space on an Ubuntu GitHub Actions runner."
+author: "BRAINSia"
 
 # See: https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#branding
 branding:
@@ -58,6 +59,15 @@ inputs:
     required: false
     default: "false"
 
+  # Removes only the CodeQL bundle from the runner tool cache
+  # (/opt/hostedtoolcache/CodeQL, ~5 GiB). Unlike `tool-cache`, this leaves the
+  # rest of the cache (Node, Go, Python, ...) intact. Defaults to false so it
+  # never surprises CodeQL scanning workflows; enable it if you don't use CodeQL.
+  codeql-images:
+    description: "Remove CodeQL bundles from the tool cache"
+    required: false
+    default: "false"
+
   swap-storage:
     description: "Remove swap storage"
     required: false
@@ -81,6 +91,7 @@ runs:
         INPUT_LARGE_PACKAGES: ${{ inputs.large-packages }}
         INPUT_DOCKER_IMAGES: ${{ inputs.docker-images }}
         INPUT_TOOL_CACHE: ${{ inputs.tool-cache }}
+        INPUT_CODEQL_IMAGES: ${{ inputs.codeql-images }}
         INPUT_SWAP_STORAGE: ${{ inputs.swap-storage }}
       run: |
         declare -A times_mapping
@@ -178,7 +189,6 @@ runs:
           epsilon=0.001 # avoid divide by zero failures
           # $saved in bytes, so convert to GB with  division by 1000000.0
           RATE=$(awk "BEGIN {printf \"%.2f\", ( $saved / 1000000.0 ) /($time + $epsilon)}")
-          gigabytes_saved=$(formatByteCount $saved)
           gigabytes_saved=$(formatByteCount $saved)
           echo "=> ${title}: Saved $gigabytes_saved: in ${time} seconds : rate = ${RATE} GB/sec"
           printSeparationLine '*' 80
@@ -371,6 +381,27 @@ runs:
           times_mapping["tool-cache"]="${STAGE_ELAPSE_TIME}"
           saved_mapping["tool-cache"]="$(formatByteCount $SAVED)"
           printSavedSpace $SAVED "Tool cache" ${STAGE_ELAPSE_TIME}
+        fi
+
+        # Option: Remove CodeQL bundles from the tool cache
+        # These live under the runner tool cache (/opt/hostedtoolcache/CodeQL)
+        # and are only needed by CodeQL scanning workflows. Removing just this
+        # bundle frees ~5 GiB while leaving the rest of the tool cache intact
+        # (unlike `tool-cache`, which removes the entire cache).
+
+        if [[ "$INPUT_CODEQL_IMAGES" == 'true' ]]; then
+          STAGE_START_TIME=$(date +%s)
+          BEFORE=$(getAvailableSpace)
+
+          fast_rmdir /opt/hostedtoolcache/CodeQL || true
+
+          AFTER=$(getAvailableSpace)
+          SAVED=$((AFTER-BEFORE))
+          STAGE_STOP_TIME=$(date +%s)
+          STAGE_ELAPSE_TIME=$((STAGE_STOP_TIME - STAGE_START_TIME))
+          times_mapping["codeql-images"]="${STAGE_ELAPSE_TIME}"
+          saved_mapping["codeql-images"]="$(formatByteCount $SAVED)"
+          printSavedSpace $SAVED "CodeQL bundles" ${STAGE_ELAPSE_TIME}
         fi
 
         # Option: Remove Swap storage

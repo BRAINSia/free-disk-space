@@ -4,7 +4,7 @@ A customizable GitHub Actions to free disk space on Linux GitHub Actions runners
 
 This is a revialization of the action deveoped at [Original Project](https://github.com/jlumbroso/free-disk-space), but has not been maintained for several years.
 
-On a typical Ubuntu runner, with all options turned on (or not turned off rather), this can clear up to 31 GB of disk space in about 3 minutes
+On a typical Ubuntu runner, with all options turned on (or not turned off rather), this can clear up to ~33 GB of disk space in a few minutes
  (the longest period is calling `apt` to uninstall packages). This is useful when you need a lot of disk space to run computations.
 
 Please don't hesitate to [submit issues](https://github.com/BRAINSia/free-disk-space/issues)
@@ -26,10 +26,17 @@ jobs:
     - name: Free Disk Space (Ubuntu)
       uses: BRAINSia/free-disk-space@v2
       with:
+        # File removal method: rmz (default), find, rsync, or rm
+        removalmode: rmz
+
         # this might remove tools that are actually needed,
         # if set to "true" but frees about 6 GB
         tool-cache: false
-        
+
+        # frees ~5 GB by removing only the CodeQL bundle from the tool cache;
+        # leave false if your workflow runs CodeQL
+        codeql-images: false
+
         # all of these default to true, but feel free to set to
         # "false" if necessary for your workflow
         mandb:   true
@@ -42,9 +49,25 @@ jobs:
 ```
 ## Options
 
-Most of the options are self-explanatory.
+All inputs are optional. Booleans are strings (`"true"` / `"false"`).
+
+| Input | Description | Default |
+| --- | --- | --- |
+| `removalmode` | Directory removal method: `rmz`, `find`, `rsync`, or `rm`. `rmz` is fastest but is downloaded at runtime (see note below). | `rmz` |
+| `aptquietflags` | Flags passed to `apt-get` to reduce CI log noise. | `-qq -o=Dpkg::Use-Pty=0` |
+| `mandb` | Remove `man-db` and disable apt man-page triggers (speeds up apt). | `true` |
+| `android` | Remove the Android SDK/runtime. | `true` |
+| `dotnet` | Remove the .NET runtime. | `true` |
+| `haskell` | Remove the Haskell (GHC) runtime. | `true` |
+| `large-packages` | Remove large apt packages (llvm, php, mongodb, mysql, azure-cli, chrome, firefox, ...). | `true` |
+| `docker-images` | Remove pre-cached Docker images. | `true` |
+| `tool-cache` | Remove the **entire** runner tool cache (Node, Go, Python, Ruby, ...). Off by default because it may remove tools your workflow needs. | `false` |
+| `codeql-images` | Remove only the CodeQL bundle from the tool cache (~5 GiB), leaving the rest intact. Off by default so it never breaks CodeQL workflows. | `false` |
+| `swap-storage` | Disable and remove swap storage. | `true` |
 
 The option `tool-cache` removes all the pre-cached tools (Node, Go, Python, Ruby, ...) that are loaded in a runner's environment, [installed in the path specified by the `AGENT_TOOLSDIRECTORY` environment variable](https://github.com/actions/virtual-environments/blob/5a2cb18a48bce5da183486b95f5494e4fd0c0640/images/linux/scripts/installers/configure-environment.sh#L25-L29) (the same environment variable is used across Windows/macOS/Linux runners, see an example of its use on [the `setup-python` GitHub Action](https://github.com/actions/setup-python)). This option was [suggested](https://github.com/actions/virtual-environments/issues/2875#issuecomment-1163392159) by [@miketimofeev](https://github.com/miketimofeev).
+
+The option `removalmode` selects how directories are deleted. The default `rmz` ([`rmz`](https://crates.io/crates/rmz)) is faster than `rm` but is installed at runtime via `cargo binstall`; if that install is unavailable in your environment, use `find`, `rsync`, or `rm`.
 
 ## Acknowledgement
 
