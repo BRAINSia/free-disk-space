@@ -67,6 +67,21 @@ runs:
   using: "composite"
   steps:
     - shell: bash
+      # Inputs are passed through the environment instead of being textually
+      # interpolated into the script body. GitHub expands `${{ inputs.* }}` into
+      # these env values, which the shell then sees as plain data ($VAR) rather
+      # than re-parsing them as shell source — this prevents command injection.
+      env:
+        INPUT_REMOVALMODE: ${{ inputs.removalmode }}
+        INPUT_APTQUIETFLAGS: ${{ inputs.aptquietflags }}
+        INPUT_MANDB: ${{ inputs.mandb }}
+        INPUT_ANDROID: ${{ inputs.android }}
+        INPUT_DOTNET: ${{ inputs.dotnet }}
+        INPUT_HASKELL: ${{ inputs.haskell }}
+        INPUT_LARGE_PACKAGES: ${{ inputs.large-packages }}
+        INPUT_DOCKER_IMAGES: ${{ inputs.docker-images }}
+        INPUT_TOOL_CACHE: ${{ inputs.tool-cache }}
+        INPUT_SWAP_STORAGE: ${{ inputs.swap-storage }}
       run: |
         declare -A times_mapping
         declare -A saved_mapping
@@ -85,7 +100,7 @@ runs:
           #
           if [[ -d "$1" ]] && [[ -n "$1" ]] && [[ ! "$1" = "/" ]] && [[ ! "$1" = "~" ]]; then
             echo "Removing directory: $1"
-            case "${{ inputs.removalmode }}" in
+            case "$INPUT_REMOVALMODE" in
               "rmz")
                 # Remove with rmz (requires separate download step)
                 sudo rmz -f "$1" || true
@@ -107,9 +122,9 @@ runs:
                 # Remove with a standard Unix command
                 sudo rm -rf "$1"
                 ;;
-              "*")
-                echo "ERROR: Invalid removalmode specified.  Valid values are [rmz, find, rsync, rm]"
-                exit -1
+              *)
+                echo "ERROR: Invalid removalmode '$INPUT_REMOVALMODE' specified.  Valid values are [rmz, find, rsync, rm]" >&2
+                exit 1
                 ;;
             esac
           fi
@@ -200,7 +215,7 @@ runs:
         AVAILABLE_INITIAL=$(getAvailableSpace)
         AVAILABLE_ROOT_INITIAL=$(getAvailableSpace '/')
 
-        if [[ ${{ inputs.removalmode }} == 'rmz' ]]; then
+        if [[ "$INPUT_REMOVALMODE" == 'rmz' ]]; then
           setup_rmz
         fi
 
@@ -222,13 +237,13 @@ runs:
         # updating the initial RAM filesystem image needed for reboot
         # is not necessary for these transient images
         export INITRD=No
-        if [[ ${{ inputs.mandb }} == 'true' ]]; then
+        if [[ "$INPUT_MANDB" == 'true' ]]; then
           STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
           sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get purge ${{ inputs.aptquietflags }} -y man-db manpages manpages-dev
-          sudo apt-get autoremove ${{ inputs.aptquietflags }} -y
+          sudo apt-get purge $INPUT_APTQUIETFLAGS -y man-db manpages manpages-dev
+          sudo apt-get autoremove $INPUT_APTQUIETFLAGS -y
           # Clean caches
           sudo rm -rf /var/lib/apt/lists/* /var/cache/apt/* || true
 
@@ -244,7 +259,7 @@ runs:
 
         # Option: Remove Android library
 
-        if [[ ${{ inputs.android }} == 'true' ]]; then
+        if [[ "$INPUT_ANDROID" == 'true' ]]; then
           STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
@@ -261,7 +276,7 @@ runs:
 
         # Option: Remove .NET runtime
 
-        if [[ ${{ inputs.dotnet }} == 'true' ]]; then
+        if [[ "$INPUT_DOTNET" == 'true' ]]; then
           STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
@@ -279,7 +294,7 @@ runs:
 
         # Option: Remove Haskell runtime
 
-        if [[ ${{ inputs.haskell }} == 'true' ]]; then
+        if [[ "$INPUT_HASKELL" == 'true' ]]; then
           STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
@@ -298,7 +313,7 @@ runs:
         # Option: Remove large packages
         # REF: https://github.com/apache/flink/blob/master/tools/azure-pipelines/free_disk_space.sh
 
-        if [[ ${{ inputs.large-packages }} == 'true' ]]; then
+        if [[ "$INPUT_LARGE_PACKAGES" == 'true' ]]; then
           STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
@@ -311,8 +326,8 @@ runs:
             fast_rmdir  /usr/share/man || true
           fi
 
-          sudo apt-get remove ${{ inputs.aptquietflags }} --autoremove -y $pkgs || echo "::warning::The command [sudo apt-get remove -y] failed to complete successfully. Proceeding..."
-          sudo apt-get clean ${{ inputs.aptquietflags }} || echo "::warning::The command [sudo apt-get clean] failed to complete successfully. Proceeding..."
+          sudo apt-get remove $INPUT_APTQUIETFLAGS --autoremove -y $pkgs || echo "::warning::The command [sudo apt-get remove -y] failed to complete successfully. Proceeding..."
+          sudo apt-get clean $INPUT_APTQUIETFLAGS || echo "::warning::The command [sudo apt-get clean] failed to complete successfully. Proceeding..."
 
           AFTER=$(getAvailableSpace)
           SAVED=$((AFTER-BEFORE))
@@ -325,7 +340,7 @@ runs:
 
         # Option: Remove Docker images
 
-        if [[ ${{ inputs.docker-images }} == 'true' ]]; then
+        if [[ "$INPUT_DOCKER_IMAGES" == 'true' ]]; then
           STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
@@ -343,7 +358,7 @@ runs:
         # Option: Remove tool cache
         # REF: https://github.com/actions/virtual-environments/issues/2875#issuecomment-1163392159
 
-        if [[ ${{ inputs.tool-cache }} == 'true' ]]; then
+        if [[ "$INPUT_TOOL_CACHE" == 'true' ]]; then
           STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
@@ -360,7 +375,7 @@ runs:
 
         # Option: Remove Swap storage
 
-        if [[ ${{ inputs.swap-storage }} == 'true' ]]; then
+        if [[ "$INPUT_SWAP_STORAGE" == 'true' ]]; then
           STAGE_START_TIME=$(date +%s)
           BEFORE=$(getAvailableSpace)
 
@@ -399,10 +414,10 @@ runs:
         saved_mapping["overall"]="$(formatByteCount $((AVAILABLE_END - AVAILABLE_INITIAL)) )"
 
         # Iterate over keys
-        echo "TIME_REPORT: == ${{ inputs.removalmode }} ===================================================="
+        echo "TIME_REPORT: == $INPUT_REMOVALMODE ===================================================="
         printf "TIME_REPORT: %15s | %-10s seconds | %-12s |\n" "subsection" "time" "size"
         echo "TIME_REPORT: ============================================================="
         for subsection in "${!times_mapping[@]}"; do
            printf "TIME_REPORT: %15s | %-10s seconds | %-12s |\n" "${subsection}" "${times_mapping[$subsection]}" "${saved_mapping[$subsection]}"
         done
-        echo "TIME_REPORT: == ${{ inputs.removalmode }} ===================================================="
+        echo "TIME_REPORT: == $INPUT_REMOVALMODE ===================================================="
